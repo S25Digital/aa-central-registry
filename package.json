@@ -1,0 +1,12 @@
+{
+  "name": "@s25digital/aa-central-registry",
+  "version": "1.0.0",
+  "description": "A package to work with Sahamati Central Registry in AA ecosystem",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Simranjeet Singh",
+  "license": "MIT"
+}
