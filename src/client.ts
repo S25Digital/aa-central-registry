@@ -1,6 +1,5 @@
-import axios, { Axios } from "axios";
+import { Axios } from "axios";
 import { EntityType } from "./enums";
-import config from "./config";
 
 interface ICentralRegistry {
   url: string;
@@ -73,3 +72,5 @@ class CentralRegistry {
     return await this._getEntityInfo(EntityType.FIU);
   }
 }
+
+export default CentralRegistry;
