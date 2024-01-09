@@ -46,4 +46,4 @@ const FIUList = await client.getFIU();
 - [Sahamati github](https://github.com/Sahamati)
 - [Central Registry Docs](https://github.com/Sahamati/aa-common-service)
 
-Thepackage is dveloped and maintained by [S25Digital Studio](https://s25.digital)
+The package is developed and maintained by [S25Digital Studio](https://s25.digital)
