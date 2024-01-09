@@ -1,4 +1,4 @@
-import { Axios } from "axios";
+import { Axios, AxiosError } from "axios";
 import { EntityType } from "./enums";
 
 interface ICentralRegistry {
@@ -35,20 +35,26 @@ class CentralRegistry {
         }),
       });
 
-      return res.data;
+      return {
+        status: res.status,
+        data: res.data,
+      };
     } catch (err) {
-      console.log(err);
+      return Promise.reject({
+        status: err.response.status,
+        error: err.response.data,
+      });
     }
   }
 
   private async _getEntityInfo(type: string) {
     const url = `${this._baseUrl}/entityInfo/${type}/`;
-    const token = await this.getToken();
+    const { data } = await this.getToken();
     const res = await this._httpClient.request({
       url,
       method: "GET",
       headers: {
-        authorization: token,
+        authorization: data.token,
         "Content-Type": "application/json",
       },
     });
@@ -57,7 +63,21 @@ class CentralRegistry {
   }
 
   public async getToken() {
-    return await this._generateToken();
+    try {
+      const res = await this._generateToken();
+      return {
+        status: res.status,
+        data: {
+          token: res.data.access_token,
+          expiry: res.data.expires_in,
+        },
+      };
+    } catch (err) {
+      return {
+        status: err.status,
+        error: err.error,
+      };
+    }
   }
 
   public async getAA() {
