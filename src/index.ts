@@ -4,7 +4,7 @@ import config from "./config";
 
 let client: CentralRegistry;
 
-export default function getCRClient() {
+export default function getCRClient(): CentralRegistry {
   if (client) {
     return client;
   }
@@ -15,4 +15,6 @@ export default function getCRClient() {
     url: config.baseUrl,
     httpClient: axios
   });
+
+  return client;
 }
