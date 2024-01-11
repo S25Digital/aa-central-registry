@@ -27,7 +27,7 @@ class CentralRegistry {
         method: "POST",
         headers: {
           authorization: `Basic ${this._basicAuth}`,
-          "Content-Type": "appliccation/x-www-form-urlencoded",
+          "Content-Type": "application/x-www-form-urlencoded",
         },
         data: new URLSearchParams({
           grant_type: "client_credentials",
@@ -48,18 +48,28 @@ class CentralRegistry {
   }
 
   private async _getEntityInfo(type: string) {
-    const url = `${this._baseUrl}/entityInfo/${type}/`;
-    const { data } = await this.getToken();
-    const res = await this._httpClient.request({
-      url,
-      method: "GET",
-      headers: {
-        authorization: data.token,
-        "Content-Type": "application/json",
-      },
-    });
+    try {
+      const url = `${this._baseUrl}/entityInfo/${type}/`;
+      const { data } = await this.getToken();
+      const res = await this._httpClient.request({
+        url,
+        method: "GET",
+        headers: {
+          authorization: `Bearer ${data.token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-    return res;
+      return {
+        status: res.status,
+        data: res.data,
+      };
+    } catch (err) {
+      return {
+        status: err.response.status,
+        error: err.response.data,
+      };
+    }
   }
 
   public async getToken() {
