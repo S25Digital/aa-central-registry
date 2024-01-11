@@ -13,7 +13,8 @@
     "build": "node build.js",
     "postbuild": "tsc",
     "prepublishOnly": "npm run build",
-    "test": "TZ=utc DOTENV_CONFIG_PATH=.env.spec mocha -r esbuild-register -r dotenv/config 'test/**/*.spec.ts'"
+    "test": "TZ=utc DOTENV_CONFIG_PATH=.env.spec mocha -r esbuild-register -r dotenv/config 'test/**/*.spec.ts'",
+    "test:coverage": "nyc npm run test"
   },
   "keywords": [],
   "author": "Simranjeet Singh",
