@@ -1,22 +1,28 @@
 import { Axios, AxiosError } from "axios";
 import { EntityType } from "./enums";
+import { ICache } from "./cache";
 
 interface ICentralRegistry {
   url: string;
   clientId: string;
   clientSecret: string;
   httpClient: Axios;
+  cache: ICache;
 }
+
+const key = "S25--CR--TOKEN--KEY--1000";
 
 class CentralRegistry {
   private _baseUrl: string;
   private _basicAuth: string;
   private _httpClient: Axios;
+  private _cache: ICache;
 
   constructor(opts: ICentralRegistry) {
     this._baseUrl = opts.url;
     this._basicAuth = btoa(`${opts.clientId}:${opts.clientSecret}`);
     this._httpClient = opts.httpClient;
+    this._cache = opts.cache;
   }
 
   private async _generateToken() {
@@ -74,14 +80,20 @@ class CentralRegistry {
 
   public async getToken() {
     try {
+      const data = await this._cache.get(key);
+      if (data) {
+        return JSON.parse(data);
+      }
       const res = await this._generateToken();
-      return {
+      const resData = {
         status: res.status,
         data: {
           token: res.data.access_token,
           expiry: res.data.expires_in,
         },
       };
+      await this._cache.set(key, JSON.stringify(resData));
+      return resData;
     } catch (err) {
       return {
         status: err.status,
