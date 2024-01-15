@@ -1,4 +1,5 @@
-import { Axios, AxiosError } from "axios";
+import { Axios } from "axios";
+import JWT from "jsonwebtoken";
 import { EntityType } from "./enums";
 import { ICache } from "./cache";
 
@@ -112,6 +113,10 @@ class CentralRegistry {
 
   public async getFIU() {
     return await this._getEntityInfo(EntityType.FIU);
+  }
+
+  public async verifyToken(token: string) {
+    const payload = JWT.verify(token, "", {});
   }
 }
 
