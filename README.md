@@ -40,6 +40,25 @@ const FIPList = await client.getFIP();
 const FIUList = await client.getFIU();
 ```
 
+##  Using a cache
+The package implements an in memory cache to store the token. You can replace this in memory cache by implementing a custom cachee with a specific interface mentioned below.
+
+```typescript
+interface ICache {
+  set(key: string, value: string): Promise<boolean>;
+  get(key: string): Promise<string>;
+}
+```
+
+Once a cache is created, you can pass it on while creating a CR Client.
+
+```typescript
+const client = getCRClient({
+  cache: myCustomCache
+});
+
+```
+
 ## Resources
 
 - [Sahamati Website](https://sahamati.org.in/)
