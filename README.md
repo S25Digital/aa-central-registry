@@ -47,6 +47,7 @@ The package implements an in memory cache to store the token. You can replace th
 interface ICache {
   set(key: string, value: string): Promise<boolean>;
   get(key: string): Promise<string>;
+  remove(key: string): Promise<boolean>;
 }
 ```
 

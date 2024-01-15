@@ -1,11 +1,13 @@
 import { expect } from "chai";
 import nock from "nock";
-import config from "src/config";
 
+import config from "src/config";
 import getCRClient from "src";
 import { EntityType } from "src/enums";
+import {cache} from "src/cache";
 
 const client = getCRClient();
+const key = "S25--CR--TOKEN--KEY--1000";
 
 let serverSetup: nock.Scope;
 
@@ -42,8 +44,20 @@ describe("The Central Registry Client", () => {
         });
       });
     });
+
+    describe("When get token is called again", () => {
+      it("should return the token from the cache", async () => {
+        const res = await client.getToken();
+        expect(res).to.deep.equal({
+          status: 200,
+          data: { token: "token", expiry: 86400 },
+        });
+      });
+    });
+
     describe("When there is an error in token response from Central registry service", () => {
       before(() => {
+        cache.remove(key);
         serverSetup = nock(config.baseUrl)
           .post(
             "/auth/realms/sahamati/protocol/openid-connect/token",
