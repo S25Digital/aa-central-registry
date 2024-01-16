@@ -41,7 +41,7 @@ const FIPList = await client.getFIP();
 const FIUList = await client.getFIU();
 ```
 
-##  Using a cache
+## Using a cache
 The package implements an in memory cache to store the token. You can replace this in memory cache by implementing a custom cachee with a specific interface mentioned below.
 
 ```typescript
@@ -59,6 +59,26 @@ const client = getCRClient({
   cache: myCustomCache
 });
 
+```
+
+## Verification of token
+The package also includes a function to verify th tokn. The keys are fetched from the certs endpoint of the service and verified using thee jsonwebtoken package.
+
+```typescript
+import getCRClient from "@s25digital/aa-central-registry";
+
+const client = getCRClient();
+
+const res = await client.verifyToken("JWT TOkEN HERE");
+
+console.log(res);
+
+/*
+{
+  isVerified: true, 
+  payload: {...}
+}
+*/
 ```
 
 ## Resources
