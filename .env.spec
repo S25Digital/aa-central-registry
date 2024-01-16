@@ -1,3 +1,4 @@
 CR_BASE_URL=http://api.example
 CR_CLIENT_ID=123456
 CR_CLIENT_SECRET=123456
+CR_TOKEN_BASE_URL=http://api.example
