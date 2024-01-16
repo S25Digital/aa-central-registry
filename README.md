@@ -13,6 +13,7 @@ Following env vars nned to be set for the package to work.
   - `CR_BASE_URL`: Base URl of the central registry provided by Sahamati.
   - `CR_CLIENT_ID`: Client Id obtained when you are onboarded.
   - `CR_CLIENT_SECRET`: Client secret obtained when you are onboarded.
+  - `CR_TOKEN_BASE_URL`: Base Url of the token service provided by Sahamati.
 
 ## Installation
 

@@ -8,6 +8,7 @@ interface ICentralRegistry {
   clientSecret: string;
   httpClient: Axios;
   cache: ICache;
+  tokenUrl: string;
 }
 
 const key = "S25--CR--TOKEN--KEY--1000";
@@ -17,17 +18,19 @@ class CentralRegistry {
   private _basicAuth: string;
   private _httpClient: Axios;
   private _cache: ICache;
+  private  _tokenUrl: string;
 
   constructor(opts: ICentralRegistry) {
     this._baseUrl = opts.url;
     this._basicAuth = btoa(`${opts.clientId}:${opts.clientSecret}`);
     this._httpClient = opts.httpClient;
     this._cache = opts.cache;
+    this._tokenUrl = opts.tokenUrl;
   }
 
   private async _generateToken() {
     try {
-      const url = `${this._baseUrl}/auth/realms/sahamati/protocol/openid-connect/token`;
+      const url = `${this._tokenUrl}/auth/realms/sahamati/protocol/openid-connect/token`;
       const res = await this._httpClient.request({
         url,
         method: "POST",

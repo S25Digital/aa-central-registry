@@ -25,6 +25,7 @@ export default function getCRClient(options = opts): CentralRegistry {
     url: config.baseUrl,
     httpClient: axios,
     cache: options.cache,
+    tokenUrl: config.tokenUrl
   });
 
   return client;
