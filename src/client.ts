@@ -1,4 +1,6 @@
-import { Axios, AxiosError } from "axios";
+import { Axios } from "axios";
+import JWT from "jsonwebtoken";
+import toPem from "rsa-pem-from-mod-exp";
 import { EntityType } from "./enums";
 import { ICache } from "./cache";
 
@@ -12,13 +14,14 @@ interface ICentralRegistry {
 }
 
 const key = "S25--CR--TOKEN--KEY--1000";
+const publicCacheKey = "S25--CR--PUBLIC--KEY--1001";
 
 class CentralRegistry {
   private _baseUrl: string;
   private _basicAuth: string;
   private _httpClient: Axios;
   private _cache: ICache;
-  private  _tokenUrl: string;
+  private _tokenUrl: string;
 
   constructor(opts: ICentralRegistry) {
     this._baseUrl = opts.url;
@@ -81,6 +84,42 @@ class CentralRegistry {
     }
   }
 
+  private async _getPublicKey(keyId: string) {
+    try {
+      const data = await this._cache.get(`${publicCacheKey}-${keyId}`);
+      if (data) {
+        return JSON.parse(data);
+      }
+      const url = `${this._tokenUrl}/auth/realms/sahamati/protocol/openid-connect/certs`;
+      const res = await this._httpClient.request({
+        url,
+        method: "GET",
+      });
+
+      const key = res.data.keys.find((item: Record<string, any>) => item.kid === keyId);
+
+      if (!key) {
+        return Promise.reject({
+          status: 401,
+          error: "wrong key",
+        });
+      }
+
+      const resData = {
+        status: res.status,
+        data: toPem(key.n, key.e),
+      };
+
+      await this._cache.set(`${publicCacheKey}-${keyId}`, JSON.stringify(resData));
+      return resData;
+    } catch (err) {
+      return Promise.reject({
+        status: err.response.status,
+        error: err.response.data,
+      });
+    }
+  }
+
   public async getToken() {
     try {
       const data = await this._cache.get(key);
@@ -115,6 +154,25 @@ class CentralRegistry {
 
   public async getFIU() {
     return await this._getEntityInfo(EntityType.FIU);
+  }
+
+  public async verifyToken(token: string) {
+    try {
+      const decoded = JWT.decode(token, { complete: true });
+      const keyId = decoded.header.kid;
+      const res = await this._getPublicKey(keyId);
+      const payload = JWT.verify(token, res.data, {
+        algorithms: ["RS256"],
+      });
+
+      if (!payload) {
+        return { isVerified: false };
+      }
+
+      return { isVerified: true, payload };
+    } catch (err) {
+      return Promise.resolve({ isVerified: false });
+    }
   }
 }
 
