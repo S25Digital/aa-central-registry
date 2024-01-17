@@ -4,14 +4,16 @@
   "description": "A package to work with Sahamati Central Registry in AA ecosystem",
   "main": "dist/index.js",
   "files": [
-    "dist"
+    "dist",
+    "types"
   ],
-  "types": "dist/types",
+  "types": "types",
   "scripts": {
     "lint": "eslint .",
     "prettier": "prettier --write .",
+    "prebuild": "rimraf dist",
     "build": "node build.js",
-    "postbuild": "tsc",
+    "build:types": "tsc",
     "prepublishOnly": "npm run build",
     "test": "TZ=utc DOTENV_CONFIG_PATH=.env.spec mocha -r esbuild-register -r dotenv/config 'test/**/*.spec.ts'",
     "test:coverage": "nyc npm run test"
@@ -41,6 +43,7 @@
     "nock": "^13.4.0",
     "nyc": "^15.1.0",
     "prettier": "^3.1.1",
+    "rimraf": "^5.0.5",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.3.3",

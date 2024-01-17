@@ -12,11 +12,11 @@
     "types": ["node", "mocha"],
     "declaration": true,
     "emitDeclarationOnly": true,
-    "declarationDir": "dist/types",
+    "declarationDir": "types",
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
     "incremental": true,
     "baseUrl": ".",
   },
-  "include": ["*/**.ts"]
+  "include": ["src/**.ts"]
 }
