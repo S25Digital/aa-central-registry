@@ -3,5 +3,8 @@ import CentralRegistry from "./client";
 interface IOptions {
     cache: ICache;
 }
+
 export default function getCRClient(options?: IOptions): CentralRegistry;
-export {};
+
+export * from "./client";
+export * from "./cache";
