@@ -10,9 +10,14 @@ interface ICentralRegistry {
   tokenUrl: string;
 }
 
-interface ILibResponse {
+interface IGetTokenResponse {
+  token: string;
+  expiry: number;
+}
+
+interface ILibResponse <T = Record<string, any> | Array<Record<string, any>>>{
   status: number;
-  data?: Record<string, any> | Array<Record<string, any>>;
+  data?: T;
   error?: any;
 }
 
@@ -26,10 +31,10 @@ declare class CentralRegistry {
   private _generateToken;
   private _getEntityInfo;
   private _getPublicKey;
-  getToken(): Promise<ILibResponse>;
-  getAA(): Promise<ILibResponse>;
-  getFIP(): Promise<ILibResponse>;
-  getFIU(): Promise<ILibResponse>;
+  getToken(): Promise<ILibResponse<IGetTokenResponse>>;
+  getAA(): Promise<ILibResponse<Array<Record<string, any>>>>;
+  getFIP(): Promise<ILibResponse<Array<Record<string, any>>>>;
+  getFIU(): Promise<ILibResponse<Array<Record<string, any>>>>;
   verifyToken(token: string): Promise<{
     isVerified: boolean;
     payload?: Record<string, any>;
