@@ -33,12 +33,19 @@ const client = getCRClient();
 // get a token from registry
 const token = await client.getToken();
 
-// get Entity Information
+// get Entity List
 const AAList = await client.getAA();
 
 const FIPList = await client.getFIP();
 
 const FIUList = await client.getFIU();
+
+// get Entity Information by Id
+const AA = await client.getAAById("id");
+
+const FIP = await client.getFIPById("id");
+
+const FIU = await client.getFIUById("id");
 ```
 
 ## Using a cache
