@@ -18,7 +18,7 @@
     "test": "TZ=utc DOTENV_CONFIG_PATH=.env.spec mocha -r esbuild-register -r dotenv/config 'test/**/*.spec.ts'",
     "test:coverage": "nyc npm run test"
   },
-  "keywords": [],
+  "keywords": ["account-aggregator", "central registry", "aa-commons", "AA"],
   "author": "Simranjeet Singh",
   "license": "MIT",
   "dependencies": {
