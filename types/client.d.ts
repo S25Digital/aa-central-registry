@@ -35,6 +35,9 @@ declare class CentralRegistry {
   getAA(): Promise<ILibResponse<Array<Record<string, any>>>>;
   getFIP(): Promise<ILibResponse<Array<Record<string, any>>>>;
   getFIU(): Promise<ILibResponse<Array<Record<string, any>>>>;
+  getAAById(id: string): Promise<ILibResponse<Record<string, any>>>;
+  getFIPById(id: string): Promise<ILibResponse<Record<string, any>>>;
+  getFIUById(id: string): Promise<ILibResponse<Record<string, any>>>;
   verifyToken(token: string): Promise<{
     isVerified: boolean;
     payload?: Record<string, any>;

@@ -1,11 +1,11 @@
 import { expect } from "chai";
 import nock from "nock";
 
-import config from "src/config";
-import getCRClient from "src";
-import { EntityType } from "src/enums";
-import { cache } from "src/cache";
-import { publicKey, signedToken } from "./data";
+import config from "../src/config";
+import getCRClient from "../src";
+import { EntityType } from "../src/enums";
+import { cache } from "../src/cache";
+import { signedToken } from "./data";
 
 const client = getCRClient();
 const key = "S25--CR--TOKEN--KEY--1000";
@@ -110,7 +110,12 @@ describe("The Central Registry Client", () => {
           });
 
         crSetup = nock(config.baseUrl)
-          .get(`/entityInfo/${entity}/`)
+          .get(`/entityInfo/${entity}`)
+          .matchHeader("authorization", "Bearer token")
+          .reply(200, [{
+            foo: "bar",
+          }])
+          .get(`/entityInfo/${entity}/test`)
           .matchHeader("authorization", "Bearer token")
           .reply(200, {
             foo: "bar",
@@ -123,6 +128,19 @@ describe("The Central Registry Client", () => {
       describe("when a response is returned from the central registry", () => {
         it("should return the response as it is received", async () => {
           const res = await client[`get${entity}`]();
+
+          expect(res).to.deep.equal({
+            data: [{
+              foo: "bar",
+            }],
+            status: 200,
+          });
+        });
+      });
+
+      describe("when a response is returned from the central registry for a specific id", () => {
+        it("should return the response as it is received", async () => {
+          const res = await client[`get${entity}ById`]("test");
 
           expect(res).to.deep.equal({
             data: {
