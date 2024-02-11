@@ -59,9 +59,12 @@ class CentralRegistry {
     }
   }
 
-  private async _getEntityInfo(type: string) {
+  private async _getEntityInfo(type: string, id: string = "") {
     try {
-      const url = `${this._baseUrl}/entityInfo/${type}/`;
+      let url = `${this._baseUrl}/entityInfo/${type}`;
+      if (id) {
+        url = `${url}/${id}`;
+      }
       const { data } = await this.getToken();
       const res = await this._httpClient.request({
         url,
@@ -96,7 +99,9 @@ class CentralRegistry {
         method: "GET",
       });
 
-      const key = res.data.keys.find((item: Record<string, any>) => item.kid === keyId);
+      const key = res.data.keys.find(
+        (item: Record<string, any>) => item.kid === keyId,
+      );
 
       if (!key) {
         return Promise.reject({
@@ -110,7 +115,10 @@ class CentralRegistry {
         data: toPem(key.n, key.e),
       };
 
-      await this._cache.set(`${publicCacheKey}-${keyId}`, JSON.stringify(resData));
+      await this._cache.set(
+        `${publicCacheKey}-${keyId}`,
+        JSON.stringify(resData),
+      );
       return resData;
     } catch (err) {
       return Promise.reject({
@@ -154,6 +162,18 @@ class CentralRegistry {
 
   public async getFIU() {
     return await this._getEntityInfo(EntityType.FIU);
+  }
+
+  public async getAAById(id: string) {
+    return await this._getEntityInfo(EntityType.AA, id);
+  }
+
+  public async getFIPById(id: string) {
+    return await this._getEntityInfo(EntityType.FIP, id);
+  }
+
+  public async getFIUById(id: string) {
+    return await this._getEntityInfo(EntityType.FIU, id);
   }
 
   public async verifyToken(token: string) {
