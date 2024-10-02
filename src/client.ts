@@ -1,6 +1,8 @@
 import { Axios } from "axios";
 import JWT from "jsonwebtoken";
 import toPem from "rsa-pem-from-mod-exp";
+import { v4 } from "uuid";
+import { subDays } from "date-fns";
 import { EntityType } from "./enums";
 import { ICache } from "./cache";
 
@@ -15,35 +17,109 @@ interface ICentralRegistry {
 
 const key = "S25--CR--TOKEN--KEY--1000";
 const publicCacheKey = "S25--CR--PUBLIC--KEY--1001";
+const secretCacheKey = "S25--CR--SECRET--KEY--1003";
 
 class CentralRegistry {
   private _baseUrl: string;
-  private _basicAuth: string;
+  private _clientId: string;
   private _httpClient: Axios;
   private _cache: ICache;
   private _tokenUrl: string;
+  private _username: string;
+  private _password: string;
 
   constructor(opts: ICentralRegistry) {
     this._baseUrl = opts.url;
-    this._basicAuth = btoa(`${opts.clientId}:${opts.clientSecret}`);
+    this._clientId = opts.clientId;
     this._httpClient = opts.httpClient;
     this._cache = opts.cache;
     this._tokenUrl = opts.tokenUrl;
   }
 
-  private async _generateToken() {
-    try {
-      const url = `${this._tokenUrl}/auth/realms/sahamati/protocol/openid-connect/token`;
+  private async _generateUserAuthToken() {
+    const url = `${this._tokenUrl}/iam/v1/user/token/generate`;
+    const res = await this._httpClient.request({
+      url,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      data: new URLSearchParams({
+        username: this._username,
+        password: this._password,
+      }),
+    });
+
+    return res.data.accessToken;
+  }
+
+  private async _resetSecret() {
+    const url = `${this._tokenUrl}/iam/v1/entity/secret/reset`;
+    const res = await this._httpClient.request({
+      url,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": await this._generateUserAuthToken()
+      },
+      data: JSON.stringify({
+        ver: "1.0.0",
+        timestamp: new Date().toISOString(),
+        txnId: v4(),
+        entityId: this._clientId,
+      }),
+    });
+
+    return res.data.secret;
+  }
+
+  private async _getSecret() {
+    let secret = await this._cache.get(secretCacheKey);
+
+    if (!secret) {
+      const url = `${this._tokenUrl}/iam/v1/entity/secret/read`;
       const res = await this._httpClient.request({
         url,
         method: "POST",
         headers: {
-          authorization: `Basic ${this._basicAuth}`,
+          "Content-Type": "application/json",
+          "Authorization": await this._generateUserAuthToken()
+        },
+        data: JSON.stringify({
+          ver: "1.0.0",
+          timestamp: new Date().toISOString(),
+          txnId: v4(),
+          entityId: this._clientId,
+        }),
+      });
+
+      const secretExpiry = new Date(res.data.expiresOn);
+
+      secret = res.data.secret;
+
+      if (secretExpiry > subDays(new Date(), 5)) {
+        secret = await this._resetSecret();
+      }
+
+      await this._cache.set(secretCacheKey, secret, 55 * 24 * 3600); // set for 55 days
+
+    }
+
+    return secret;
+  }
+
+  private async _generateToken() {
+    try {
+      const url = `${this._tokenUrl}/iam/v1/entity/token/generate`;
+      const res = await this._httpClient.request({
+        url,
+        method: "POST",
+        headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
         data: new URLSearchParams({
-          grant_type: "client_credentials",
-          scope: "openid",
+          id: this._clientId,
+          secret: await this._getSecret(),
         }),
       });
 
@@ -138,8 +214,8 @@ class CentralRegistry {
       const resData = {
         status: res.status,
         data: {
-          token: res.data.access_token,
-          expiry: res.data.expires_in,
+          token: res.data.accessToken,
+          expiry: res.data.expiresIn,
         },
       };
       await this._cache.set(key, JSON.stringify(resData));
