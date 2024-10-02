@@ -21,11 +21,12 @@ export default function getCRClient(options = opts): CentralRegistry {
 
   client = new CentralRegistry({
     clientId: config.clientId,
-    clientSecret: config.clientSecret,
     url: config.baseUrl,
     httpClient: axios,
     cache: options.cache,
-    tokenUrl: config.tokenUrl
+    tokenUrl: config.tokenUrl,
+    username: config.username,
+    password: config.password
   });
 
   return client;

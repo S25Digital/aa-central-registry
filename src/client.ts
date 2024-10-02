@@ -9,10 +9,11 @@ import { ICache } from "./cache";
 interface ICentralRegistry {
   url: string;
   clientId: string;
-  clientSecret: string;
   httpClient: Axios;
   cache: ICache;
   tokenUrl: string;
+  username: string;
+  password: string;
 }
 
 const key = "S25--CR--TOKEN--KEY--1000";
@@ -101,7 +102,7 @@ class CentralRegistry {
         secret = await this._resetSecret();
       }
 
-      await this._cache.set(secretCacheKey, secret, 55 * 24 * 3600); // set for 55 days
+      await this._cache.set(secretCacheKey, secret, 59 * 86400); // set for 59 days
 
     }
 
