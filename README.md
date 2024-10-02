@@ -49,7 +49,7 @@ const FIU = await client.getFIUById("id");
 ```
 
 ## Using a cache
-The package implements an in memory cache to store the token. You can replace this in memory cache by implementing a custom cachee with a specific interface mentioned below.
+The package implements an in memory cache to store the token. You can replace this in memory cache by implementing a custom cache with a specific interface mentioned below.
 
 ```typescript
 interface ICache {
