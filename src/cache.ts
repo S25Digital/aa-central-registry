@@ -1,4 +1,5 @@
 import NodeCache from "node-cache";
+import { RedisClientType } from "redis";
 
 const nCache = new NodeCache();
 
@@ -24,3 +25,31 @@ export const cache: ICache = {
     return false;
   },
 };
+
+export function getRedisCacheObj(client: RedisClientType): ICache {
+  const cache: ICache = {
+    set: async (key: string, value: string, expiry = 20 * 3600) => {
+      try {
+        await client.set(key, value, {
+          EX: expiry,
+        });
+        return true;
+      } catch (err) {
+        return false;
+      }
+    },
+    get: async (key: string) => {
+      return await client.get(key);
+    },
+    remove: async (key: string) => {
+      try {
+        await client.del(key);
+        return true;
+      } catch (err) {
+        return false;
+      }
+    },
+  };
+
+  return cache;
+}
