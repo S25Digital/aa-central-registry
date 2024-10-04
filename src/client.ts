@@ -1,5 +1,5 @@
 import { Axios } from "axios";
-import JWT from "jsonwebtoken";
+import JWT, { JwtPayload } from "jsonwebtoken";
 import toPem from "rsa-pem-from-mod-exp";
 import { v4 } from "uuid";
 import { subDays } from "date-fns";
@@ -61,7 +61,7 @@ class CentralRegistry {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": await this._generateUserAuthToken()
+        Authorization: await this._generateUserAuthToken(),
       },
       data: JSON.stringify({
         ver: "1.0.0",
@@ -84,7 +84,7 @@ class CentralRegistry {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": await this._generateUserAuthToken()
+          Authorization: await this._generateUserAuthToken(),
         },
         data: JSON.stringify({
           ver: "1.0.0",
@@ -103,7 +103,6 @@ class CentralRegistry {
       }
 
       await this._cache.set(secretCacheKey, secret, 59 * 86400); // set for 59 days
-
     }
 
     return secret;
@@ -164,13 +163,13 @@ class CentralRegistry {
     }
   }
 
-  private async _getPublicKey(keyId: string) {
+  private async _getPublicKey(iss: string, keyId: string) {
     try {
       const data = await this._cache.get(`${publicCacheKey}-${keyId}`);
       if (data) {
         return JSON.parse(data);
       }
-      const url = `${this._tokenUrl}/auth/realms/sahamati/protocol/openid-connect/certs`;
+      const url = `${iss}/protocol/openid-connect/certs`;
       const res = await this._httpClient.request({
         url,
         method: "GET",
@@ -257,7 +256,8 @@ class CentralRegistry {
     try {
       const decoded = JWT.decode(token, { complete: true });
       const keyId = decoded.header.kid;
-      const res = await this._getPublicKey(keyId);
+      const { iss } = decoded.payload as JwtPayload;
+      const res = await this._getPublicKey(iss, keyId);
       const payload = JWT.verify(token, res.data, {
         algorithms: ["RS256"],
       });
