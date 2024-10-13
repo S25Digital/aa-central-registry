@@ -14,6 +14,7 @@ interface ICentralRegistry {
   tokenUrl: string;
   username: string;
   password: string;
+  hardResetSecret?: boolean;
 }
 
 const key = "S25--CR--TOKEN--KEY--1000";
@@ -21,13 +22,14 @@ const publicCacheKey = "S25--CR--PUBLIC--KEY--1001";
 const secretCacheKey = "S25--CR--SECRET--KEY--1003";
 
 class CentralRegistry {
-  private _baseUrl: string;
-  private _clientId: string;
-  private _httpClient: Axios;
-  private _cache: ICache;
-  private _tokenUrl: string;
-  private _username: string;
-  private _password: string;
+  private readonly _baseUrl: string;
+  private readonly _clientId: string;
+  private readonly _httpClient: Axios;
+  private readonly _cache: ICache;
+  private readonly _tokenUrl: string;
+  private readonly _username: string;
+  private readonly _password: string;
+  private readonly _hardResetSecret: boolean = false;
 
   constructor(opts: ICentralRegistry) {
     this._baseUrl = opts.url;
@@ -35,6 +37,7 @@ class CentralRegistry {
     this._httpClient = opts.httpClient;
     this._cache = opts.cache;
     this._tokenUrl = opts.tokenUrl;
+    this._hardResetSecret = opts.hardResetSecret ?? false;
   }
 
   private async _generateUserAuthToken() {
@@ -75,6 +78,11 @@ class CentralRegistry {
   }
 
   private async _getSecret() {
+    if (this._hardResetSecret == true) {
+      const secret = await this._resetSecret();
+      await this._cache.set(secretCacheKey, secret, 59 * 86400); // set for 59 days
+    }
+
     let secret = await this._cache.get(secretCacheKey);
 
     if (!secret) {
