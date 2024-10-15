@@ -1,8 +1,16 @@
 # aa-central-registry
 
-The package facilitates the integration with Account Aggregator Central Registry Hosted by Sahamati.
+## Overview
 
-The client supports the generation of the auth token, fetch  of entities like FIP, FIU and AA.
+This library provides a set of functions to interact with a centralized registry service, handling authentication tokens, entity information, and token verification. It leverages JWT (JSON Web Token) for authentication, caching for performance optimization, and provides methods for managing secrets and entities.
+
+## Features
+
+- **Authentication Token Generation:** Generates and manages user and entity authentication tokens.
+- **Secret Management:** Resets and retrieves secrets for the registered entities.
+- **Entity Information Retrieval:** Fetches information for different entity types such as AA, FIP, and FIU.
+- **Public Key Retrieval:** Fetches public keys for token verification.
+- **JWT Token Verification:** Verifies tokens using RS256 encryption algorithm.
 
 ## Badges
 
@@ -12,8 +20,10 @@ The client supports the generation of the auth token, fetch  of entities like FI
 Following env vars nned to be set for the package to work.
   - `CR_BASE_URL`: Base URl of the central registry provided by Sahamati.
   - `CR_CLIENT_ID`: Client Id obtained when you are onboarded.
-  - `CR_CLIENT_SECRET`: Client secret obtained when you are onboarded.
   - `CR_TOKEN_BASE_URL`: Base Url of the token service provided by Sahamati.
+  - `CR_CLIENT_USERNAME`: Username for User linked with the entity
+  - `CR_CLIENT_PASSWORD`: password for User linked with the entity
+  - `CR_RESET_SECRET`: Force-ful reset of the token
 
 ## Installation
 
@@ -25,68 +35,74 @@ npm i @s25digital/aa-central-registry
 
 ## Usage
 
-```typescript
-import getCRClient from "@s25digital/aa-central-registry";
+1. **Setup CentralRegistry:**
 
-const client = getCRClient();
+   ```typescript
+   import getCRClient, {getRedisCache} from "@s25digital/aa-central-registry";
 
-// get a token from registry
-const token = await client.getToken();
+   const cache = await getRedisCache("redis://localhost:6379");
+   
+   const centralRegistry = getCRClient({
+    cache,
+    loggerLevel: "silent"
+   });
+   ```
 
-// get Entity List
-const AAList = await client.getAA();
+2. **Fetch Entity Information:**
+   
+   ```typescript
+   const aaInfo = await centralRegistry.getAA();
+   const fipInfo = await centralRegistry.getFIP();
+   const fiuInfo = await centralRegistry.getFIU();
+   ```
 
-const FIPList = await client.getFIP();
+3. **Get Token:**
 
-const FIUList = await client.getFIU();
+   Retrieve the authentication token for the client entity.
 
-// get Entity Information by Id
-const AA = await client.getAAById("id");
+   ```typescript
+   const tokenResponse = await centralRegistry.getToken();
+   ```
 
-const FIP = await client.getFIPById("id");
+4. **Verify Token:**
 
-const FIU = await client.getFIUById("id");
-```
+   Verify the authenticity of a token.
 
-## Using a cache
-The package implements an in memory cache to store the token. You can replace this in memory cache by implementing a custom cache with a specific interface mentioned below.
+   ```typescript
+   const verificationResponse = await centralRegistry.verifyToken("your-token-here");
+   ```
+5. **Using a cache**
 
-```typescript
-interface ICache {
-  set(key: string, value: string): Promise<boolean>;
-  get(key: string): Promise<string>;
-  remove(key: string): Promise<boolean>;
-}
-```
+  The package implements an in memory cache to store the token. You can replace this in memory cache by implementing a custom cache with a specific interface mentioned below.
 
-Once a cache is created, you can pass it on while creating a CR Client.
+  ```typescript
+  interface ICache {
+    set(key: string, value: string): Promise<boolean>;
+    get(key: string): Promise<string>;
+    remove(key: string): Promise<boolean>;
+  }
+  ```
+  Once a cache is created, you can pass it on while creating a CR Client.
+  
+  ```typescript
+  const client = getCRClient({
+    cache: myCustomCache
+  });
+  ```
 
-```typescript
-const client = getCRClient({
-  cache: myCustomCache
-});
+## Methods
 
-```
+### `getToken()`
 
-## Verification of token
-The package also includes a function to verify th tokn. The keys are fetched from the certs endpoint of the service and verified using thee jsonwebtoken package.
+Generates or retrieves an existing authentication token for the client entity.
 
-```typescript
-import getCRClient from "@s25digital/aa-central-registry";
+### `getAA()`, `getFIP()`, `getFIU()`
 
-const client = getCRClient();
+Retrieves information about specific entities (Account Aggregators, Financial Information Providers, or Financial Information Users).
 
-const res = await client.verifyToken("JWT TOkEN HERE");
+### `verifyToken(token: string)`
 
-console.log(res);
-
-/*
-{
-  isVerified: true, 
-  payload: {...}
-}
-*/
-```
+Verifies the given JWT token using the public key retrieved from the issuer.
 
 ## Resources
 
