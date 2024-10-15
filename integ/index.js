@@ -1,14 +1,16 @@
 const { default: getCRlient, getRedisCache } = require("../dist");
 
-
-
 async function test() {
-  const cache = await getRedisCache("redis://localhost:6379")
+  const cache = await getRedisCache("redis://localhost:6379");
   const client = getCRlient({
     loggerLevel: "debug",
-    cache
+    cache,
   });
-  return await client.getToken();
+  const res = await client.getToken();
+
+  const verifyInfo = await client.verifyToken(res.data.token);
+
+  return { res, verifyInfo };
 }
 
 return test()
