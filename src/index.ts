@@ -9,7 +9,7 @@ import config from "./config";
 let client: CentralRegistry;
 
 interface IOptions {
-  cache: ICache;
+  cache?: ICache;
   loggerLevel?: "debug" | "info" | "error" | "silent";
 }
 
