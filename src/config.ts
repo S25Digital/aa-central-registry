@@ -5,7 +5,6 @@ const envDecoder = record({
   CR_CLIENT_ID: string,
   CR_CLIENT_USERNAME: string,
   CR_TOKEN_BASE_URL: string,
-  CR_TOKEN_KEY_URL: string,
   CR_CLIENT_PASSWORD: string,
   CR_RESET_SECRET: optional(string)
 });
@@ -18,7 +17,6 @@ const config: Record<string, any> = {
   username: data.CR_CLIENT_USERNAME,
   password: data.CR_CLIENT_PASSWORD,
   tokenUrl: data.CR_TOKEN_BASE_URL,
-  tokenKeyUrl: data.CR_TOKEN_KEY_URL,
   resetToken: data.CR_RESET_SECRET === "YES" ? true : false
 };
 

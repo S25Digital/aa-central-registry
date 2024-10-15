@@ -5,6 +5,7 @@ import { v4 } from "uuid";
 import { subDays } from "date-fns";
 import { EntityType } from "./enums";
 import { ICache } from "./cache";
+import { Logger } from "pino";
 
 interface ICentralRegistry {
   url: string;
@@ -14,6 +15,7 @@ interface ICentralRegistry {
   tokenUrl: string;
   username: string;
   password: string;
+  logger: Logger;
   hardResetSecret?: boolean;
 }
 
@@ -30,6 +32,7 @@ class CentralRegistry {
   private readonly _username: string;
   private readonly _password: string;
   private readonly _hardResetSecret: boolean = false;
+  private readonly _logger: Logger;
 
   constructor(opts: ICentralRegistry) {
     this._baseUrl = opts.url;
@@ -37,10 +40,16 @@ class CentralRegistry {
     this._httpClient = opts.httpClient;
     this._cache = opts.cache;
     this._tokenUrl = opts.tokenUrl;
+    this._username = opts.username;
+    this._password = opts.password;
+    this._logger = opts.logger;
     this._hardResetSecret = opts.hardResetSecret ?? false;
   }
 
   private async _generateUserAuthToken() {
+    this._logger.debug({
+      message: "Generating Admin token for processing",
+    });
     const url = `${this._tokenUrl}/iam/v1/user/token/generate`;
     const res = await this._httpClient.request({
       url,
@@ -54,10 +63,17 @@ class CentralRegistry {
       }),
     });
 
+    this._logger.debug({
+      message: "Admin Token generation was successful",
+    });
+
     return res.data.accessToken;
   }
 
   private async _resetSecret() {
+    this._logger.debug({
+      message: "Resetting secret",
+    });
     const url = `${this._tokenUrl}/iam/v1/entity/secret/reset`;
     const res = await this._httpClient.request({
       url,
@@ -74,11 +90,21 @@ class CentralRegistry {
       }),
     });
 
+    this._logger.debug({
+      message: "Secret Reset successful",
+    });
+
     return res.data.secret;
   }
 
   private async _getSecret() {
+    this._logger.debug({
+      message: "Get current secret",
+    });
     if (this._hardResetSecret == true) {
+      this._logger.debug({
+        message: "Hard resetting secret",
+      });
       const secret = await this._resetSecret();
       await this._cache.set(secretCacheKey, secret, 59 * 86400); // set for 59 days
     }
@@ -86,6 +112,9 @@ class CentralRegistry {
     let secret = await this._cache.get(secretCacheKey);
 
     if (!secret) {
+      this._logger.debug({
+        message: "Readin Secret",
+      });
       const url = `${this._tokenUrl}/iam/v1/entity/secret/read`;
       const res = await this._httpClient.request({
         url,
@@ -107,17 +136,26 @@ class CentralRegistry {
       secret = res.data.secret;
 
       if (secretExpiry > subDays(new Date(), 5)) {
+        this._logger.debug({
+          message: "Secret Expired, Reset Secret",
+        });
         secret = await this._resetSecret();
       }
-
       await this._cache.set(secretCacheKey, secret, 59 * 86400); // set for 59 days
     }
+
+    this._logger.debug({
+      message: "Secret Read and returning",
+    });
 
     return secret;
   }
 
   private async _generateToken() {
     try {
+      this._logger.debug({
+        message: "Generating Entity Token",
+      });
       const url = `${this._tokenUrl}/iam/v1/entity/token/generate`;
       const res = await this._httpClient.request({
         url,
@@ -131,6 +169,9 @@ class CentralRegistry {
         }),
       });
 
+      this._logger.debug({
+        message: "Returning entity token",
+      });
       return {
         status: res.status,
         data: res.data,
@@ -172,6 +213,9 @@ class CentralRegistry {
   }
 
   private async _getPublicKey(iss: string, keyId: string) {
+    this._logger.debug({
+      message: "Fetch CR Public key for verification",
+    });
     try {
       const data = await this._cache.get(`${publicCacheKey}-${keyId}`);
       if (data) {
@@ -205,6 +249,11 @@ class CentralRegistry {
       );
       return resData;
     } catch (err) {
+      this._logger.error({
+        message: "Issue in fetching the public key",
+        status: err.response.status,
+        error: err.response.data,
+      });
       return Promise.reject({
         status: err.response.status,
         error: err.response.data,
@@ -229,6 +278,11 @@ class CentralRegistry {
       await this._cache.set(key, JSON.stringify(resData));
       return resData;
     } catch (err) {
+      this._logger.error({
+        message: "Issue in getting the token",
+        status: err.status,
+        error: err.error,
+      });
       return {
         status: err.status,
         error: err.error,
@@ -276,6 +330,10 @@ class CentralRegistry {
 
       return { isVerified: true, payload };
     } catch (err) {
+      this._logger.error({
+        message: "Issue in token verification",
+        err
+      })
       return Promise.resolve({ isVerified: false });
     }
   }
