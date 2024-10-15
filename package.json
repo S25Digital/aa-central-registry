@@ -16,7 +16,9 @@
     "build:types": "tsc",
     "prepublishOnly": "npm run build",
     "test": "TZ=utc DOTENV_CONFIG_PATH=.env.spec mocha -r esbuild-register -r dotenv/config 'test/**/*.spec.ts'",
-    "test:coverage": "nyc npm run test"
+    "test:coverage": "nyc npm run test",
+    "preinteg": "npm run build",
+    "integ": "node -r dotenv/config integ/index.js"
   },
   "keywords": [
     "account-aggregator",
