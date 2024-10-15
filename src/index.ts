@@ -52,21 +52,26 @@ export default function getCRClient(options = opts): CentralRegistry {
     return client;
   }
 
+  const finalOpts: IOptions = {
+    cache: options.cache ?? opts.cache,
+    loggerLevel: options.loggerLevel ?? opts.loggerLevel,
+  };
+
   const logger = Logger({
     name: "CR_LOGGER",
-    level: options.loggerLevel,
+    level: finalOpts.loggerLevel,
   });
 
   client = new CentralRegistry({
     clientId: config.clientId,
     url: config.baseUrl,
     httpClient: axios,
-    cache: options.cache,
+    cache: finalOpts.cache,
     tokenUrl: config.tokenUrl,
     username: config.username,
     password: config.password,
     logger,
-    hardResetSecret: config.resetToken
+    hardResetSecret: config.resetToken,
   });
 
   return client;

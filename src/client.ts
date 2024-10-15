@@ -113,7 +113,7 @@ class CentralRegistry {
 
     if (!secret) {
       this._logger.debug({
-        message: "Readin Secret",
+        message: "Reading Secret",
       });
       const url = `${this._tokenUrl}/iam/v1/entity/secret/read`;
       const res = await this._httpClient.request({
@@ -135,7 +135,7 @@ class CentralRegistry {
 
       secret = res.data.secret;
 
-      if (secretExpiry > subDays(new Date(), 5)) {
+      if (new Date() > subDays(secretExpiry, 5)) {
         this._logger.debug({
           message: "Secret Expired, Reset Secret",
         });
