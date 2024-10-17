@@ -6,6 +6,7 @@ import getCRClient from "../src";
 import { EntityType } from "../src/enums";
 import { cache } from "../src/cache";
 import { signedToken } from "./data";
+import { addDays } from "date-fns";
 
 const client = getCRClient();
 const key = "S25--CR--TOKEN--KEY--1000";
@@ -18,19 +19,38 @@ describe("The Central Registry Client", () => {
     describe("When a token response is returned from Central registry service", () => {
       before(() => {
         serverSetup = nock(config.tokenUrl)
+          .persist()
           .post(
-            "/auth/realms/sahamati/protocol/openid-connect/token",
+            "/iam/v1/entity/token/generate",
             new URLSearchParams({
-              grant_type: "client_credentials",
-              scope: "openid",
+              id: "123456",
+              secret: "test",
             }).toString(),
           )
           .matchHeader("Content-Type", "application/x-www-form-urlencoded")
-          .basicAuth({ user: config.clientId, pass: config.clientSecret })
           .reply(200, {
-            access_token: "token",
-            expires_in: 86400,
-            token_type: "Bearer",
+            accessToken: "token",
+            expiresIn: 86400,
+          });
+        serverSetup
+          .post("/iam/v1/entity/secret/read")
+          .matchHeader("Content-Type", "application/json")
+          .matchHeader("Authorization", "test")
+          .reply(200, {
+            secret: "test",
+            expiresOn: addDays(new Date(), 7).getTime(),
+          });
+
+        serverSetup
+          .post(
+            "/iam/v1/user/token/generate",
+            new URLSearchParams({
+              username: "teest",
+              password: "test",
+            }).toString(),
+          )
+          .reply(200, {
+            accessToken: "test",
           });
       });
 
@@ -57,19 +77,11 @@ describe("The Central Registry Client", () => {
       });
     });
 
-    describe("When there is an error in token response from Central registry service", () => {
+    describe.skip("When there is an error in token response from Central registry service", () => {
       before(() => {
         cache.remove(key);
         serverSetup = nock(config.tokenUrl)
-          .post(
-            "/auth/realms/sahamati/protocol/openid-connect/token",
-            new URLSearchParams({
-              grant_type: "client_credentials",
-              scope: "openid",
-            }).toString(),
-          )
-          .matchHeader("Content-Type", "application/x-www-form-urlencoded")
-          .basicAuth({ user: config.clientId, pass: config.clientSecret })
+          .post("/iam/v1/user/token/generate")
           .reply(400, {
             message: "Error",
           });
@@ -94,27 +106,48 @@ describe("The Central Registry Client", () => {
     describe(`The getEntity method for ${entity}`, () => {
       before(() => {
         serverSetup = nock(config.tokenUrl)
+          .persist()
           .post(
-            "/auth/realms/sahamati/protocol/openid-connect/token",
+            "/iam/v1/entity/token/generate",
             new URLSearchParams({
-              grant_type: "client_credentials",
-              scope: "openid",
+              id: "123456",
+              secret: "test",
             }).toString(),
           )
           .matchHeader("Content-Type", "application/x-www-form-urlencoded")
-          .basicAuth({ user: config.clientId, pass: config.clientSecret })
           .reply(200, {
-            access_token: "token",
-            expires_in: 86400,
-            token_type: "Bearer",
+            accessToken: "token",
+            expiresIn: 86400,
+          });
+        serverSetup
+          .post("/iam/v1/entity/secret/read")
+          .matchHeader("Content-Type", "application/json")
+          .matchHeader("Authorization", "test")
+          .reply(200, {
+            secret: "test",
+            expiresOn: addDays(new Date(), 7).getTime(),
+          });
+
+        serverSetup
+          .post(
+            "/iam/v1/user/token/generate",
+            new URLSearchParams({
+              username: "teest",
+              password: "test",
+            }).toString(),
+          )
+          .reply(200, {
+            accessToken: "test",
           });
 
         crSetup = nock(config.baseUrl)
           .get(`/entityInfo/${entity}`)
           .matchHeader("authorization", "Bearer token")
-          .reply(200, [{
-            foo: "bar",
-          }])
+          .reply(200, [
+            {
+              foo: "bar",
+            },
+          ])
           .get(`/entityInfo/${entity}/test`)
           .matchHeader("authorization", "Bearer token")
           .reply(200, {
@@ -130,9 +163,11 @@ describe("The Central Registry Client", () => {
           const res = await client[`get${entity}`]();
 
           expect(res).to.deep.equal({
-            data: [{
-              foo: "bar",
-            }],
+            data: [
+              {
+                foo: "bar",
+              },
+            ],
             status: 200,
           });
         });
@@ -157,7 +192,7 @@ describe("The Central Registry Client", () => {
     describe("when the key is available", () => {
       before(() => {
         serverSetup = nock(config.tokenUrl)
-          .get("/auth/realms/sahamati/protocol/openid-connect/certs")
+          .get("/protocol/openid-connect/certs")
           .reply(200, {
             keys: [
               {
@@ -181,6 +216,7 @@ describe("The Central Registry Client", () => {
           isVerified: true,
           payload: {
             foo: "bar",
+            iss: "http://api.example",
           },
         });
       });

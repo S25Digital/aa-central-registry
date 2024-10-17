@@ -41,7 +41,7 @@ pQIDAQAB
 // export const pKey = publicKey;
 
 export const signedToken = JWT.sign(
-  JSON.stringify({ foo: "bar" }),
+  JSON.stringify({ foo: "bar", iss: "http://api.example" }),
   privateKey.toString(),
   { algorithm: "RS256", keyid: "test" },
 );
