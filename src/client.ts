@@ -74,13 +74,15 @@ class CentralRegistry {
     this._logger.debug({
       message: "Resetting secret",
     });
+
+    const Authorization = await this._generateUserAuthToken();
     const url = `${this._tokenUrl}/iam/v1/entity/secret/reset`;
     const res = await this._httpClient.request({
       url,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: await this._generateUserAuthToken(),
+        Authorization
       },
       data: JSON.stringify({
         ver: "1.0.0",
@@ -115,13 +117,14 @@ class CentralRegistry {
       this._logger.debug({
         message: "Reading Secret",
       });
+      const Authorization = await this._generateUserAuthToken();
       const url = `${this._tokenUrl}/iam/v1/entity/secret/read`;
       const res = await this._httpClient.request({
         url,
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: await this._generateUserAuthToken(),
+          Authorization
         },
         data: JSON.stringify({
           ver: "1.0.0",
@@ -156,6 +159,7 @@ class CentralRegistry {
       this._logger.debug({
         message: "Generating Entity Token",
       });
+      const secret = await this._getSecret();
       const url = `${this._tokenUrl}/iam/v1/entity/token/generate`;
       const res = await this._httpClient.request({
         url,
@@ -165,7 +169,7 @@ class CentralRegistry {
         },
         data: new URLSearchParams({
           id: this._clientId,
-          secret: await this._getSecret(),
+          secret
         }),
       });
 
@@ -219,6 +223,9 @@ class CentralRegistry {
     try {
       const data = await this._cache.get(`${publicCacheKey}-${keyId}`);
       if (data) {
+        this._logger.debug({
+          message: "Public Key: Returning from cache",
+        });
         return JSON.parse(data);
       }
       const url = `${iss}/protocol/openid-connect/certs`;
