@@ -181,9 +181,14 @@ class CentralRegistry {
         data: res.data,
       };
     } catch (err) {
+      this._logger.debug({
+        message: "error received while generating token",
+        status: err?.response?.status ?? 0,
+        error: err?.response?.data ?? err,
+      })
       return Promise.reject({
-        status: err.response.status,
-        error: err.response.data,
+        status: err?.response?.status,
+        error: err?.response?.data,
       });
     }
   }
@@ -209,9 +214,12 @@ class CentralRegistry {
         data: res.data,
       };
     } catch (err) {
+      this._logger.debug({
+        message: "Error in fetching the entity",
+      });
       return {
-        status: err.response.status,
-        error: err.response.data,
+        status: err?.response?.status,
+        error: err?.response?.data ?? err,
       };
     }
   }
@@ -258,12 +266,12 @@ class CentralRegistry {
     } catch (err) {
       this._logger.error({
         message: "Issue in fetching the public key",
-        status: err.response.status,
-        error: err.response.data,
+        status: err?.response?.status,
+        error: err?.response?.data ?? err,
       });
       return Promise.reject({
-        status: err.response.status,
-        error: err.response.data,
+        status: err?.response?.status,
+        error: err?.response?.data,
       });
     }
   }
@@ -288,11 +296,11 @@ class CentralRegistry {
       this._logger.error({
         message: "Issue in getting the token",
         status: err?.status ?? err?.response?.status,
-        error: err?.response,
+        error: err ?? err?.response,
       });
       return {
         status: err?.status ?? err?.response?.status,
-        error: err?.response,
+        error: err ?? err?.response,
       };
     }
   }
