@@ -287,12 +287,12 @@ class CentralRegistry {
     } catch (err) {
       this._logger.error({
         message: "Issue in getting the token",
-        status: err.status,
-        error: err.error,
+        status: err?.status ?? err?.response?.status,
+        error: err?.response,
       });
       return {
-        status: err.status,
-        error: err.error,
+        status: err?.status ?? err?.response?.status,
+        error: err?.response,
       };
     }
   }
