@@ -2,7 +2,7 @@ import { Axios } from "axios";
 import JWT, { JwtPayload } from "jsonwebtoken";
 import toPem from "rsa-pem-from-mod-exp";
 import { v4 } from "uuid";
-import { subDays } from "date-fns";
+import { intervalToDuration, subDays } from "date-fns";
 import { EntityType } from "./enums";
 import { ICache } from "./cache";
 import { Logger } from "pino";
@@ -44,6 +44,14 @@ class CentralRegistry {
     this._password = opts.password;
     this._logger = opts.logger;
     this._hardResetSecret = opts.hardResetSecret ?? false;
+
+    // reset any existing cached keys
+    this._resetKeys();
+  }
+
+  private async _resetKeys() {
+    await this._cache.remove(key);
+    await this._cache.remove(secretCacheKey);
   }
 
   private async _generateUserAuthToken() {
@@ -82,7 +90,7 @@ class CentralRegistry {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization
+        Authorization,
       },
       data: JSON.stringify({
         ver: "1.0.0",
@@ -108,7 +116,7 @@ class CentralRegistry {
         message: "Hard resetting secret",
       });
       const secret = await this._resetSecret();
-      await this._cache.set(secretCacheKey, secret, 59 * 86400); // set for 59 days
+      await this._cache.set(secretCacheKey, secret, 86400); // set for 1 day
     }
 
     let secret = await this._cache.get(secretCacheKey);
@@ -124,7 +132,7 @@ class CentralRegistry {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization
+          Authorization,
         },
         data: JSON.stringify({
           ver: "1.0.0",
@@ -138,13 +146,18 @@ class CentralRegistry {
 
       secret = res.data.secret;
 
-      if (new Date() > subDays(secretExpiry, 5)) {
+      const { days } = intervalToDuration({
+        start: new Date(),
+        end: secretExpiry,
+      });
+
+      if ((days > 0 && days < 5) || days < 0) {
         this._logger.debug({
           message: "Secret Expired, Reset Secret",
         });
         secret = await this._resetSecret();
       }
-      await this._cache.set(secretCacheKey, secret, 59 * 86400); // set for 59 days
+      await this._cache.set(secretCacheKey, secret, (days - 5) * 86400); // set for remaining days
     }
 
     this._logger.debug({
@@ -169,7 +182,7 @@ class CentralRegistry {
         },
         data: new URLSearchParams({
           id: this._clientId,
-          secret
+          secret,
         }),
       });
 
@@ -181,11 +194,14 @@ class CentralRegistry {
         data: res.data,
       };
     } catch (err) {
+      // reset keys
+      this._resetKeys();
+
       this._logger.debug({
         message: "error received while generating token",
         status: err?.response?.status ?? 0,
         error: err?.response?.data ?? err,
-      })
+      });
       return Promise.reject({
         status: err?.response?.status,
         error: err?.response?.data,
@@ -293,6 +309,7 @@ class CentralRegistry {
       await this._cache.set(key, JSON.stringify(resData));
       return resData;
     } catch (err) {
+      this._resetKeys();
       this._logger.error({
         message: "Issue in getting the token",
         status: err?.status ?? err?.response?.status,
@@ -347,8 +364,8 @@ class CentralRegistry {
     } catch (err) {
       this._logger.error({
         message: "Issue in token verification",
-        err
-      })
+        err,
+      });
       return Promise.resolve({ isVerified: false });
     }
   }
