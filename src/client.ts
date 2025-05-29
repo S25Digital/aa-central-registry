@@ -7,6 +7,8 @@ import { EntityType } from "./enums";
 import { ICache } from "./cache";
 import { Logger } from "pino";
 
+import Config from "./config";
+
 interface ICentralRegistry {
   url: string;
   clientId: string;
@@ -19,9 +21,9 @@ interface ICentralRegistry {
   hardResetSecret?: boolean;
 }
 
-const key = "S25--CR--TOKEN--KEY--1000";
+const key = `S25--CR--TOKEN--KEY--1000-${Config.clientId}`;
 const publicCacheKey = "S25--CR--PUBLIC--KEY--1001";
-const secretCacheKey = "S25--CR--SECRET--KEY--1003";
+const secretCacheKey = `S25--CR--SECRET--KEY--1003-${Config.clientId}`;
 
 class CentralRegistry {
   private readonly _baseUrl: string;
