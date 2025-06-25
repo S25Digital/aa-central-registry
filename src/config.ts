@@ -6,7 +6,8 @@ const envDecoder = record({
   CR_CLIENT_USERNAME: string,
   CR_TOKEN_BASE_URL: string,
   CR_CLIENT_PASSWORD: string,
-  CR_RESET_SECRET: optional(string)
+  CR_RESET_SECRET: optional(string),
+  CR_SECRET: optional(string)
 });
 
 const data = envDecoder(process.env);
@@ -17,7 +18,8 @@ const config: Record<string, any> = {
   username: data.CR_CLIENT_USERNAME,
   password: data.CR_CLIENT_PASSWORD,
   tokenUrl: data.CR_TOKEN_BASE_URL,
-  resetToken: data.CR_RESET_SECRET === "YES" ? true : false
+  resetToken: data.CR_RESET_SECRET === "YES" ? true : false,
+  secret: data.CR_SECRET ?? null
 };
 
 export default Object.freeze(config);

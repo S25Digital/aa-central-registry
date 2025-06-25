@@ -72,6 +72,7 @@ export default function getCRClient(options = opts): CentralRegistry {
     password: config.password,
     logger,
     hardResetSecret: config.resetToken,
+    secret: config.secret,
   });
 
   // call get token to cache token

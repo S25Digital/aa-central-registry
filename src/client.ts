@@ -19,6 +19,7 @@ interface ICentralRegistry {
   password: string;
   logger: Logger;
   hardResetSecret?: boolean;
+  secret?: string;
 }
 
 const key = `S25--CR--TOKEN--KEY--1000-${Config.clientId}`;
@@ -35,6 +36,7 @@ class CentralRegistry {
   private readonly _password: string;
   private readonly _hardResetSecret: boolean = false;
   private readonly _logger: Logger;
+  private readonly _secret: string;
 
   constructor(opts: ICentralRegistry) {
     this._baseUrl = opts.url;
@@ -46,6 +48,7 @@ class CentralRegistry {
     this._password = opts.password;
     this._logger = opts.logger;
     this._hardResetSecret = opts.hardResetSecret ?? false;
+    this._secret = opts.secret;
 
     // reset any existing cached keys
     this._resetKeys();
@@ -87,26 +90,35 @@ class CentralRegistry {
 
     const Authorization = await this._generateUserAuthToken();
     const url = `${this._tokenUrl}/iam/v1/entity/secret/reset`;
-    const res = await this._httpClient.request({
-      url,
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization,
-      },
-      data: JSON.stringify({
-        ver: "1.0.0",
-        timestamp: new Date().toISOString(),
-        txnId: v4(),
-        entityId: this._clientId,
-      }),
-    });
+    try {
+      const res = await this._httpClient.request({
+        url,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization,
+        },
+        data: JSON.stringify({
+          ver: "1.0.0",
+          timestamp: new Date().toISOString(),
+          txnId: v4(),
+          entityId: this._clientId,
+        }),
+      });
 
-    this._logger.debug({
-      message: "Secret Reset successful",
-    });
+      this._logger.debug({
+        message: "Secret Reset successful",
+      });
 
-    return res.data.secret;
+      return res.data.secret;
+    } catch (err) {
+      this._logger.debug({
+        message: "error received while generating token",
+        status: err?.response?.status ?? 0,
+        error: err?.response?.data ?? err,
+      })
+      throw err;
+    }
   }
 
   private async _getSecret() {
@@ -121,7 +133,7 @@ class CentralRegistry {
       await this._cache.set(secretCacheKey, secret, 86400); // set for 1 day
     }
 
-    let secret = await this._cache.get(secretCacheKey);
+    let secret = this._secret ?? await this._cache.get(secretCacheKey);
 
     if (!secret) {
       this._logger.debug({
@@ -151,6 +163,10 @@ class CentralRegistry {
       const { days } = intervalToDuration({
         start: new Date(),
         end: secretExpiry,
+      });
+
+      this._logger.debug({
+        mssage: `Secret will expire in ${days}`,
       });
 
       if ((days > 0 && days < 5) || days < 0) {
