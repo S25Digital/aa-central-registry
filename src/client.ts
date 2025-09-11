@@ -8,6 +8,7 @@ import { ICache } from "./cache";
 import { Logger } from "pino";
 
 import Config from "./config";
+import { createHash } from "crypto";
 
 interface ICentralRegistry {
   url: string;
@@ -116,7 +117,7 @@ class CentralRegistry {
         message: "error received while generating token",
         status: err?.response?.status ?? 0,
         error: err?.response?.data ?? err,
-      })
+      });
       throw err;
     }
   }
@@ -133,7 +134,7 @@ class CentralRegistry {
       await this._cache.set(secretCacheKey, secret, 86400); // set for 1 day
     }
 
-    let secret = this._secret ?? await this._cache.get(secretCacheKey);
+    let secret = this._secret ?? (await this._cache.get(secretCacheKey));
 
     if (!secret) {
       this._logger.debug({
@@ -262,8 +263,11 @@ class CentralRegistry {
     this._logger.debug({
       message: "Fetch CR Public key for verification",
     });
+    const issKey = createHash("sha256").update(iss).digest("hex");
     try {
-      const data = await this._cache.get(`${publicCacheKey}-${keyId}`);
+      const data = await this._cache.get(
+        `${publicCacheKey}-${keyId}-${issKey}`,
+      );
       if (data) {
         this._logger.debug({
           message: "Public Key: Returning from cache",
@@ -293,7 +297,7 @@ class CentralRegistry {
       };
 
       await this._cache.set(
-        `${publicCacheKey}-${keyId}`,
+        `${publicCacheKey}-${keyId}-${issKey}`,
         JSON.stringify(resData),
       );
       return resData;

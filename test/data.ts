@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import JWT from "jsonwebtoken";
 
 const privateKey = `-----BEGIN RSA PRIVATE KEY-----
@@ -45,3 +46,7 @@ export const signedToken = JWT.sign(
   privateKey.toString(),
   { algorithm: "RS256", keyid: "test" },
 );
+
+export const issKey = createHash("sha256")
+  .update("http://api.example")
+  .digest("hex");

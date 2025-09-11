@@ -5,7 +5,7 @@ import config from "../src/config";
 import getCRClient from "../src";
 import { EntityType } from "../src/enums";
 import { cache } from "../src/cache";
-import { signedToken } from "./data";
+import { issKey, signedToken } from "./data";
 import { addDays } from "date-fns";
 
 const client = getCRClient();
@@ -224,7 +224,7 @@ describe("The Central Registry Client", () => {
 
     describe("when the key is not available", () => {
       before(() => {
-        cache.remove("S25--CR--PUBLIC--KEY--1001-test");
+        cache.remove(`S25--CR--PUBLIC--KEY--1001-test-${issKey}`);
         serverSetup = nock(config.tokenUrl)
           .get("/auth/realms/sahamati/protocol/openid-connect/certs")
           .reply(200, {
