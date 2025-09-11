@@ -1,113 +1,189 @@
 # aa-central-registry
 
-## Overview
+A lightweight TypeScript client to integrate with the Account Aggregator Ecosysetem, **Central Registry** and **Token Issuance Service** (Sahamati).  
+The client handles entity-token generation, admin user token generation (for secret read/reset), secret lifecycle management, entity discovery (AA / FIP / FIU), public-key retrieval and JWT verification.
 
-This library provides a set of functions to interact with a centralized registry service, handling authentication tokens, entity information, and token verification. It leverages JWT (JSON Web Token) for authentication, caching for performance optimization, and provides methods for managing secrets and entities.
+Package on npm: `@s25digital/aa-central-registry`  
+Repository: [S25Digital/aa-central-registry](https://github.com/S25Digital/aa-central-registry)
+
+---
+
+## Table of Contents
+
+- [Why use this package](#why-use-this-package)  
+- [Features](#features)  
+- [Install](#install)  
+- [Quick Start](#quick-start)  
+- [Public API (methods)](#public-api-methods)  
+- [Environment variables / Config](#environment-variables--config)  
+- [Cache interface](#cache-interface)  
+- [Examples](#examples)  
+- [Error handling & troubleshooting](#error-handling--troubleshooting)  
+- [Security notes](#security-notes)  
+- [Contributing](#contributing)  
+- [License](#license)  
+- [Resources](#resources)
+
+---
+
+## Why use this package
+
+If your FIU/AA/FIP needs to:
+
+- Discover other participants (base URL, public key, metadata), or  
+- Programmatically validate tokens issued by other participants, or  
+- Manage the entity secret lifecycle (read / reset via admin user token),
+
+then this package wraps those Central Registry and Token Issuance Service calls and provides token caching and verification helpers so you don’t have to re-implement the flows. It follows the Sahamati Central Registry & Token Issuance Service APIs.
+
+---
 
 ## Features
 
-- **Authentication Token Generation:** Generates and manages user and entity authentication tokens.
-- **Secret Management:** Resets and retrieves secrets for the registered entities.
-- **Entity Information Retrieval:** Fetches information for different entity types such as AA, FIP, and FIU.
-- **Public Key Retrieval:** Fetches public keys for token verification.
-- **JWT Token Verification:** Verifies tokens using RS256 encryption algorithm.
+- Generate **entity tokens** (cached) for Central Registry APIs.  
+- Generate **admin user tokens** (for secret read/reset ops).  
+- Read / reset entity **secrets** and handle expiry logic.  
+- Discover entities: list/fetch **AAs, FIPs, FIUs** (and fetch by id).  
+- Fetch OIDC certs and convert `n/e` to PEM for **JWT verification** (`rsa-pem-from-mod-exp`).  
+- Pluggable **cache implementation** (in-memory default; helpers for Redis available).
 
-## Badges
+---
 
-[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
-
-## Environment Vars
-Following env vars nned to be set for the package to work.
-  - `CR_BASE_URL`: Base URl of the central registry provided by Sahamati.
-  - `CR_CLIENT_ID`: Client Id obtained when you are onboarded.
-  - `CR_TOKEN_BASE_URL`: Base Url of the token service provided by Sahamati.
-  - `CR_CLIENT_USERNAME`: Username for User linked with the entity
-  - `CR_CLIENT_PASSWORD`: password for User linked with the entity
-  - `CR_RESET_SECRET`: Force-ful reset of the token
-
-## Installation
+## Install
 
 ```bash
+npm install @s25digital/aa-central-registry
+# or
+yarn add @s25digital/aa-central-registry
+````
 
-npm i @s25digital/aa-central-registry
+---
 
+## Quick Start
+
+```ts
+import getCRClient, { getRedisCache } from "@s25digital/aa-central-registry";
+
+(async () => {
+  // create or reuse a cache (example redis url)
+  const cache = await getRedisCache("redis://localhost:6379"); // helper provided
+
+  // create client
+  const centralRegistry = getCRClient({
+    url: process.env.CR_BASE_URL,
+    clientId: process.env.CR_CLIENT_ID,
+    tokenUrl: process.env.CR_TOKEN_BASE_URL,
+    username: process.env.CR_CLIENT_USERNAME,
+    password: process.env.CR_CLIENT_PASSWORD,
+    cache,
+    loggerLevel: "info"
+  });
+
+  // fetch AAs
+  const aa = await centralRegistry.getAA();
+  console.log(aa);
+
+  // get an entity token
+  const tokenResponse = await centralRegistry.getToken();
+  console.log(tokenResponse);
+
+  // verify an incoming token
+  const verification = await centralRegistry.verifyToken("eyJ...");
+  console.log(verification);
+})();
 ```
 
-## Usage
+---
 
-1. **Setup CentralRegistry:**
+## Public API (methods)
 
-   ```typescript
-   import getCRClient, {getRedisCache} from "@s25digital/aa-central-registry";
+All methods are asynchronous.
 
-   const cache = await getRedisCache("redis://localhost:6379");
-   
-   const centralRegistry = getCRClient({
-    cache,
-    loggerLevel: "silent"
-   });
-   ```
+* `getToken()`: returns cached entity token or generates a new one.
+  Returns `{ status, data: { token, expiry } }` or an error-like object.
 
-2. **Fetch Entity Information:**
-   
-   ```typescript
-   const aaInfo = await centralRegistry.getAA();
-   const fipInfo = await centralRegistry.getFIP();
-   const fiuInfo = await centralRegistry.getFIU();
-   ```
+* `getAA()`, `getFIP()`, `getFIU()`: fetch lists of entities from the Central Registry.
+  Returns `{ status, data }`.
 
-3. **Get Token:**
+* `getAAById(id)`, `getFIPById(id)`, `getFIUById(id)`: fetch a single entity by id.
 
-   Retrieve the authentication token for the client entity.
+* `verifyToken(token: string)`: verifies a JWT by:
 
-   ```typescript
-   const tokenResponse = await centralRegistry.getToken();
-   ```
+  1. decoding to get `iss` and `kid`,
+  2. fetching issuer OIDC certs, converting n/e to PEM,
+  3. verifying with `jsonwebtoken`.
+     Returns `{ isVerified: boolean, payload? }`.
 
-4. **Verify Token:**
+---
 
-   Verify the authenticity of a token.
+## Environment variables / Config
 
-   ```typescript
-   const verificationResponse = await centralRegistry.verifyToken("your-token-here");
-   ```
-5. **Using a cache**
+You can pass config explicitly to `getCRClient()` or rely on environment variables.
 
-  The package implements an in memory cache to store the token. You can replace this in memory cache by implementing a custom cache with a specific interface mentioned below.
+* `CR_BASE_URL` — Base URL of the Central Registry (e.g. `https://aacommons.sahamati.org.in`)
+* `CR_CLIENT_ID` — Client/entity ID assigned when onboarded
+* `CR_TOKEN_BASE_URL` — Base URL of Sahamati token service
+* `CR_CLIENT_USERNAME` — Admin user username (for secret read/reset)
+* `CR_CLIENT_PASSWORD` — Admin user password
+* `CR_RESET_SECRET` — boolean (optional) — force a reset on startup
 
-  ```typescript
-  interface ICache {
-    set(key: string, value: string): Promise<boolean>;
-    get(key: string): Promise<string>;
-    remove(key: string): Promise<boolean>;
-  }
-  ```
-  Once a cache is created, you can pass it on while creating a CR Client.
-  
-  ```typescript
-  const client = getCRClient({
-    cache: myCustomCache
-  });
-  ```
+If you use the package’s `getCRClient()` wrapper, the above will be read from `process.env` if not provided explicitly.
 
-## Methods
+---
 
-### `getToken()`
+## Cache interface
 
-Generates or retrieves an existing authentication token for the client entity.
+The client expects an `ICache` with these async methods:
 
-### `getAA()`, `getFIP()`, `getFIU()`
+```ts
+interface ICache {
+  set(key: string, value: string, ttlSeconds?: number): Promise<boolean>;
+  get(key: string): Promise<string | null>;
+  remove(key: string): Promise<boolean>;
+}
+```
 
-Retrieves information about specific entities (Account Aggregators, Financial Information Providers, or Financial Information Users).
+> Note: The repo includes an in-memory cache and a Redis helper (`getRedisCache(url)`).
+> If you provide a custom cache, make sure the `set` behavior supports TTL.
 
-### `verifyToken(token: string)`
+---
 
-Verifies the given JWT token using the public key retrieved from the issuer.
+## Examples
+
+### Get list of AAs
+
+```ts
+const aaList = await centralRegistry.getAA();
+console.log(aaList);
+```
+
+### Fetch token and use it
+
+```ts
+const { data: { token } } = await centralRegistry.getToken();
+// use `token` as Authorization header to call other CR-protected APIs
+```
+
+### Verify incoming JWT
+
+```ts
+const { isVerified, payload } = await centralRegistry.verifyToken(incomingToken);
+if (!isVerified) {
+  // reject request
+}
+```
+
+---
+
+## License
+
+MIT — see `LICENSE` in repo.
+
+---
 
 ## Resources
 
-- [Sahamati Website](https://sahamati.org.in/)
-- [Sahamati github](https://github.com/Sahamati)
-- [Central Registry Docs](https://github.com/Sahamati/aa-common-service)
+* Repo: [S25Digital/aa-central-registry](https://github.com/S25Digital/aa-central-registry)
+* Sahamati Central Registry documentation: [https://aacommons.sahamati.org.in](https://aacommons.sahamati.org.in)
 
-The package is developed and maintained by [S25Digital Studio](https://s25.digital)
+This package is maintained by [S25Digital Studio](https://s25.digital)
