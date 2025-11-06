@@ -1,4 +1,5 @@
 import axios from "axios";
+import axiosRetry from "axios-retry";
 import { createClient, RedisClientType } from "redis";
 import Logger from "pino";
 
@@ -7,6 +8,21 @@ import CentralRegistry from "./client";
 import config from "./config";
 
 let client: CentralRegistry;
+
+const httpClient = axios.create();
+
+axiosRetry(httpClient, {
+  retries: 3,
+  retryDelay: axiosRetry.exponentialDelay,
+  shouldResetTimeout: true,
+  retryCondition: (error) => {
+    return (
+      error.code === "ECONNABORTED" ||
+      axiosRetry.isNetworkOrIdempotentRequestError(error) ||
+      error?.response?.status >= 500
+    );
+  },
+});
 
 interface IOptions {
   cache?: ICache;
@@ -65,7 +81,7 @@ export default function getCRClient(options = opts): CentralRegistry {
   client = new CentralRegistry({
     clientId: config.clientId,
     url: config.baseUrl,
-    httpClient: axios,
+    httpClient: httpClient,
     cache: finalOpts.cache,
     tokenUrl: config.tokenUrl,
     username: config.username,
