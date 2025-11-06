@@ -33,7 +33,7 @@
     "date-fns": "^4.1.0",
     "jsonwebtoken": "^9.0.2",
     "node-cache": "^5.1.2",
-    "pino": "^9.7.0",
+    "pino": "^10.1.0",
     "redis": "^5.9.0",
     "rsa-pem-from-mod-exp": "^0.8.6",
     "uuid": "^13.0.0"
