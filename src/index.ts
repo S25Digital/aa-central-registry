@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, {Axios} from "axios";
 import axiosRetry from "axios-retry";
 import { createClient, RedisClientType } from "redis";
 import Logger from "pino";
@@ -9,9 +9,9 @@ import config from "./config";
 
 let client: CentralRegistry;
 
-const httpClient = axios.create();
+const hClient = axios.create();
 
-axiosRetry(httpClient, {
+axiosRetry(hClient, {
   retries: 3,
   retryDelay: axiosRetry.exponentialDelay,
   shouldResetTimeout: true,
@@ -27,6 +27,7 @@ axiosRetry(httpClient, {
 interface IOptions {
   cache?: ICache;
   loggerLevel?: "debug" | "info" | "error" | "silent";
+  httpClient?: Axios;
 }
 
 let redisClient: RedisClientType;
@@ -34,6 +35,7 @@ let redisClient: RedisClientType;
 const opts: IOptions = {
   cache: nCache,
   loggerLevel: "silent",
+  httpClient: hClient
 };
 
 async function connectRedis(url: string) {
@@ -71,6 +73,7 @@ export default function getCRClient(options = opts): CentralRegistry {
   const finalOpts: IOptions = {
     cache: options.cache ?? opts.cache,
     loggerLevel: options.loggerLevel ?? opts.loggerLevel,
+    httpClient: options.httpClient ?? opts.httpClient
   };
 
   const logger = Logger({
@@ -81,7 +84,7 @@ export default function getCRClient(options = opts): CentralRegistry {
   client = new CentralRegistry({
     clientId: config.clientId,
     url: config.baseUrl,
-    httpClient: httpClient,
+    httpClient: finalOpts.httpClient,
     cache: finalOpts.cache,
     tokenUrl: config.tokenUrl,
     username: config.username,

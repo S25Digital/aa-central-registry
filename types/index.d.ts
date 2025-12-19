@@ -1,8 +1,10 @@
+import { Axios } from "axios";
 import { ICache } from "./cache";
 import CentralRegistry from "./client";
 interface IOptions {
     cache?: ICache;
     loggerLevel?: "debug" | "info" | "error" | "silent";
+    httpClient?: Axios
 }
 
 export default function getCRClient(options?: IOptions): CentralRegistry;
